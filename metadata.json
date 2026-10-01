@@ -1,0 +1,6 @@
+{
+  "name": "BEM PM PIB — Aurora Imperium",
+  "description": "Official portal of Badan Eksekutif Mahasiswa Politeknik Internasional Bali (BEM PM PIB) Cabinet Aurora Imperium. Bergerak Bersama, Berkarya Bersama.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
