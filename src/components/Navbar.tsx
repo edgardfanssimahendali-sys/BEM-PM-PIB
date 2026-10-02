@@ -4,9 +4,11 @@ import AuroraLogo from './AuroraLogo';
 
 interface NavbarProps {
   onOpenAspiration: () => void;
+  onNavigateHome?: (targetSection?: string) => void;
+  isSubPage?: boolean;
 }
 
-export default function Navbar({ onOpenAspiration }: NavbarProps) {
+export default function Navbar({ onOpenAspiration, onNavigateHome, isSubPage = false }: NavbarProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('home');
@@ -45,8 +47,12 @@ export default function Navbar({ onOpenAspiration }: NavbarProps) {
     { label: 'NEWS', href: '#news', id: 'news' },
   ];
 
-  const handleNavClick = (href: string) => {
+  const handleNavClick = (href: string, id: string) => {
     setMobileOpen(false);
+    if (isSubPage && onNavigateHome) {
+      onNavigateHome(id);
+      return;
+    }
     const target = document.querySelector(href);
     if (target) {
       target.scrollIntoView({ behavior: 'smooth' });
@@ -65,7 +71,13 @@ export default function Navbar({ onOpenAspiration }: NavbarProps) {
         {/* Zone 1: Brand Wordmark (Single text element according to Top Bar Contract) */}
         <a
           href="#home"
-          className="group flex items-center gap-3 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 rounded-md"
+          onClick={(e) => {
+            if (isSubPage && onNavigateHome) {
+              e.preventDefault();
+              onNavigateHome('home');
+            }
+          }}
+          className="group flex items-center gap-3 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 rounded-md cursor-pointer"
         >
           <AuroraLogo className="w-9 h-9" />
           <div className="flex flex-col">
@@ -88,14 +100,14 @@ export default function Navbar({ onOpenAspiration }: NavbarProps) {
                 href={item.href}
                 onClick={(e) => {
                   e.preventDefault();
-                  handleNavClick(item.href);
+                  handleNavClick(item.href, item.id);
                 }}
                 className={`transition-colors whitespace-nowrap py-1 relative hover:text-white ${
-                  isActive ? 'text-violet-300 font-bold' : 'text-neutral-400'
+                  isActive && !isSubPage ? 'text-violet-300 font-bold' : 'text-neutral-400'
                 }`}
               >
                 {item.label}
-                {isActive && (
+                {isActive && !isSubPage && (
                   <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-violet-500 to-cyan-400 rounded-full" />
                 )}
               </a>
@@ -139,7 +151,7 @@ export default function Navbar({ onOpenAspiration }: NavbarProps) {
                 href={item.href}
                 onClick={(e) => {
                   e.preventDefault();
-                  handleNavClick(item.href);
+                  handleNavClick(item.href, item.id);
                 }}
                 className="block py-3 text-lg font-display font-bold tracking-wider text-neutral-200 hover:text-violet-300 border-b border-white/5 transition-colors"
               >

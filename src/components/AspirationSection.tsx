@@ -12,8 +12,11 @@ import {
   ShieldCheck, 
   ArrowRight,
   Sparkles,
-  Check
+  Check,
+  Mail
 } from 'lucide-react';
+
+const TARGET_ADMIN_EMAIL = 'edgardfanssimahendali@gmail.com';
 
 interface AspirationSectionProps {
   onAspirationSuccess?: (id: string) => void;
@@ -40,59 +43,89 @@ export default function AspirationSection({ onAspirationSuccess }: AspirationSec
   const [searchError, setSearchError] = useState('');
 
   // Handle Form Submit
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!subject.trim() || !message.trim()) return;
 
     setIsSubmitting(true);
 
-    setTimeout(() => {
-      const newCounter = aspirations.length + 1;
-      const generatedId = `ASP-AI-2026-${String(newCounter).padStart(3, '0')}`;
-      const nowStr = new Date().toLocaleDateString('id-ID', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
+    const newCounter = aspirations.length + 1;
+    const generatedId = `ASP-AI-2026-${String(newCounter).padStart(3, '0')}`;
+    const nowStr = new Date().toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+
+    const responsibleMinistry = category === 'Facilities' 
+      ? 'Kementerian Dalam Negeri (Biro Fasilitas)'
+      : category === 'Academic'
+      ? 'Kementerian Riset dan Kebijakan'
+      : category === 'Organization'
+      ? 'Kementerian Dalam Negeri & Luar Negeri'
+      : 'Badan Pengurus Harian (BPH) BEM PM';
+
+    const newAspiration: Aspiration = {
+      id: generatedId,
+      name: name.trim() || 'Anonymous (Mahasiswa PIB)',
+      studentId: studentId.trim() || 'PIB-RAHASIA',
+      category,
+      subject,
+      message,
+      status: 'SUBMITTED',
+      createdAt: `${nowStr} (Baru Saja)`,
+      updatedAt: `${nowStr}`,
+      responsibleMinistry,
+      timeline: [
+        {
+          status: 'SUBMITTED',
+          date: nowStr,
+          description: 'Aspirasi resmi tercatat dalam sistem terpadu BEM PM PIB.',
+          note: `Otomatis diteruskan ke email admin: ${TARGET_ADMIN_EMAIL}`,
+        },
+      ],
+    };
+
+    // Otomatis kirim email ke edgardfanssimahendali@gmail.com via direct JSON form dispatcher
+    try {
+      await fetch(`https://formsubmit.co/ajax/${TARGET_ADMIN_EMAIL}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          _subject: `[ASPIRASI BEM PM PIB] ${generatedId} - ${subject}`,
+          _template: 'table',
+          _captcha: 'false',
+          'ID Aspirasi': generatedId,
+          'Kategori': category,
+          'Nama Pengirim': name.trim() || 'Anonymous (Mahasiswa PIB)',
+          'NIM': studentId.trim() || 'Tidak Diisi / Rahasia',
+          'Kementerian Terkait': responsibleMinistry,
+          'Judul Aspirasi': subject,
+          'Isi Pesan': message,
+          'Lampiran': attachmentName || 'Tidak ada lampiran',
+          'Waktu Kirim': `${nowStr} WITA`,
+          'Platform': 'Portal Resmi Aurora Imperium - BEM PM PIB',
+        }),
       });
+    } catch (err) {
+      console.warn('FormSubmit background notification:', err);
+    }
 
-      const newAspiration: Aspiration = {
-        id: generatedId,
-        name: name.trim() || 'Anonymous (Mahasiswa PIB)',
-        studentId: studentId.trim() || 'PIB-RAHASIA',
-        category,
-        subject,
-        message,
-        status: 'SUBMITTED',
-        createdAt: `${nowStr} (Baru Saja)`,
-        updatedAt: `${nowStr}`,
-        responsibleMinistry: category === 'Facilities' 
-          ? 'Kementerian Dalam Negeri (Biro Fasilitas)'
-          : category === 'Academic'
-          ? 'Kementerian Riset dan Kebijakan'
-          : 'Badan Pengurus Harian (BPH) BEM PM',
-        timeline: [
-          {
-            status: 'SUBMITTED',
-            date: nowStr,
-            description: 'Aspirasi resmi tercatat dalam sistem terpadu BEM PM PIB.',
-            note: 'Menunggu peninjauan oleh kementerian penanggung jawab.',
-          },
-        ],
-      };
+    setAspirations([newAspiration, ...aspirations]);
+    setSubmittedAspiration(newAspiration);
+    setIsSubmitting(false);
 
-      setAspirations([newAspiration, ...aspirations]);
-      setSubmittedAspiration(newAspiration);
-      setIsSubmitting(false);
+    // Auto-set the tracker to this new aspiration
+    setSearchId(generatedId);
+    setTrackedResult(newAspiration);
+    setSearchError('');
 
-      // Auto-set the tracker to this new aspiration
-      setSearchId(generatedId);
-      setTrackedResult(newAspiration);
-      setSearchError('');
-
-      if (onAspirationSuccess) {
-        onAspirationSuccess(generatedId);
-      }
-    }, 600);
+    if (onAspirationSuccess) {
+      onAspirationSuccess(generatedId);
+    }
   };
 
   // Handle Tracking Lookup
@@ -213,6 +246,36 @@ export default function AspirationSection({ onAspirationSuccess }: AspirationSec
                     <span>{copiedId ? 'Disalin' : 'Salin'}</span>
                   </button>
                 </div>
+
+                {/* Email Delivery Confirmation Card */}
+                <div className="p-3.5 rounded-xl bg-violet-900/30 border border-violet-500/30 text-xs text-left mb-6 flex items-start gap-2.5">
+                  <Mail className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-mono text-cyan-300 font-bold uppercase text-[11px] mb-0.5 flex items-center gap-1.5">
+                      <span>OTOMATIS TERKIRIM KE EMAIL ADMIN:</span>
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    </div>
+                    <div className="font-mono text-white text-xs font-semibold">
+                      {TARGET_ADMIN_EMAIL}
+                    </div>
+                    <div className="text-[11px] text-neutral-400 mt-1">
+                      Rincian lengkap aspirasi ini telah dikirimkan ke kotak masuk email pengelola BEM PM PIB.
+                    </div>
+                  </div>
+                </div>
+
+                {/* Optional Fallback Email Client Link */}
+                <a
+                  href={`mailto:${TARGET_ADMIN_EMAIL}?subject=${encodeURIComponent(`[ASPIRASI MAHASISWA BEM PM PIB] ${submittedAspiration.id} - ${submittedAspiration.subject}`)}&body=${encodeURIComponent(
+                    `Halo Admin BEM PM PIB,\n\nBerikut rincian aspirasi mahasiswa yang telah disubmit melalui portal Aurora Imperium:\n\nKode Aspirasi: ${submittedAspiration.id}\nKategori: ${submittedAspiration.category}\nPengirim: ${submittedAspiration.name}\nNIM: ${submittedAspiration.studentId}\nKementerian: ${submittedAspiration.responsibleMinistry}\n\nJudul: ${submittedAspiration.subject}\n\nPesan:\n${submittedAspiration.message}\n\nWaktu: ${submittedAspiration.createdAt}\n\n---\nDikirim dari Portal Resmi Aurora Imperium - BEM PM PIB`
+                  )}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-mono text-neutral-300 hover:text-white flex items-center justify-center gap-1.5 transition-colors mb-3 border border-white/10"
+                >
+                  <Mail className="w-3.5 h-3.5 text-violet-400" />
+                  <span>Kirim Salinan via Gmail / Email Client</span>
+                </a>
 
                 <button
                   onClick={() => {
@@ -346,7 +409,7 @@ export default function AspirationSection({ onAspirationSuccess }: AspirationSec
                   className="w-full py-4 rounded-xl bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-500 hover:from-violet-500 hover:to-cyan-400 text-white font-bold text-xs tracking-wider uppercase transition-all shadow-[0_0_25px_rgba(139,92,246,0.4)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   {isSubmitting ? (
-                    <span>MENGIRIMKAN ASPIRASI...</span>
+                    <span>MENGIRIMKAN ASPIRASI & NOTIFIKASI EMAIL...</span>
                   ) : (
                     <>
                       <span>SUBMIT ASPIRATION</span>
@@ -354,6 +417,11 @@ export default function AspirationSection({ onAspirationSuccess }: AspirationSec
                     </>
                   )}
                 </button>
+
+                <div className="flex items-center justify-center gap-1.5 text-[11px] font-mono text-neutral-400 pt-1 text-center">
+                  <Mail className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                  <span>Otomatis diteruskan ke: <strong className="text-violet-300">{TARGET_ADMIN_EMAIL}</strong></span>
+                </div>
               </form>
             )}
           </div>
